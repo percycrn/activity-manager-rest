@@ -1,13 +1,16 @@
 package com.usst.ten.demo.controller;
 
 import com.usst.ten.demo.entity.User;
+import com.usst.ten.demo.pojo.Response;
 import com.usst.ten.demo.pojo.SignData;
+import com.usst.ten.demo.pojo.SignInResponse;
 import com.usst.ten.demo.repository.*;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.HttpServletResponse;
 
 @RestController
 public class ServiceController {
@@ -32,12 +35,12 @@ public class ServiceController {
      */
     @CrossOrigin
     @PostMapping(value = "/signin")
-    public String signIn(@RequestBody SignData signData) {
+    public SignInResponse signIn(@RequestBody SignData signData) {
         User user = userRepo.findByPhoneNumber(signData.getPhoneNumber());
         if (user == null || !user.getPassword().equals(signData.getPassword())) {
-            return "incorrect account or password";
+            return new SignInResponse("incorrect account or password", 400, -1);
         }
-        return "success to sign in";
+        return new SignInResponse("success to sign in", 200, user.getUid());
     }
 
     /**
@@ -55,15 +58,15 @@ public class ServiceController {
      */
     @CrossOrigin
     @PostMapping(value = "/signup")
-    public String signUp(@RequestBody SignData signData) {
+    public Response signUp(@RequestBody SignData signData) {
         if (userRepo.findByPhoneNumber(signData.getPhoneNumber()) != null) {
-            return "account already exists";
+            return new Response("account already exists", 400);
         }
         User user = new User();
         user.setTags("student");
         user.setPhoneNumber(signData.getPhoneNumber());
         user.setPassword(signData.getPassword());
         userRepo.save(user);
-        return "success to sign up";
+        return new Response("success to sign up", 200);
     }
 }

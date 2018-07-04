@@ -4,9 +4,11 @@ import com.usst.ten.demo.entity.Activity;
 import com.usst.ten.demo.entity.Application;
 import com.usst.ten.demo.enumerate.ApplicationState;
 import com.usst.ten.demo.pojo.ApplicationInfo;
+import com.usst.ten.demo.pojo.Response;
 import com.usst.ten.demo.repository.*;
 import org.springframework.web.bind.annotation.*;
 
+import javax.transaction.Transactional;
 import java.util.List;
 
 @RestController
@@ -30,17 +32,17 @@ public class AppController {
      */
     @CrossOrigin
     @PostMapping(value = "/users/{uid}/apps")
-    public String createApp(@PathVariable("uid") Integer uid, @RequestBody ApplicationInfo applicationInfo) {
-        Application application = new Application();
+    public Response createApp(@PathVariable("uid") Integer uid, @RequestBody ApplicationInfo applicationInfo) {
         if (applicationRepo.findByUidAndTag(uid, applicationInfo.getTag()) != null) {
-            return "already apply this position";
+            return new Response("already apply this position", 400);
         }
+        Application application = new Application();
         application.setUid(uid);
         application.setApplyTime(System.currentTimeMillis());
         application.setTag(applicationInfo.getTag());
         application.setState(ApplicationState.PENDDING.toString());
         applicationRepo.save(application);
-        return "success to apply";
+        return new Response("success to apply", 200);
     }
 
     /**
@@ -54,12 +56,13 @@ public class AppController {
      * @return 用户删除的申请的信息
      */
     @CrossOrigin
-    @DeleteMapping(value = "/users/apps/{apid}")
-    public String deleteApp(@PathVariable("apid") Integer apid) {
-        if (applicationRepo.deleteByApid(apid) == null) {
-            return "application not exists";
+    @Transactional
+    @DeleteMapping(value = "/apps/{apid}")
+    public Response deleteApp(@PathVariable("apid") Integer apid) {
+        if (applicationRepo.deleteByApid(apid) == 1) {
+            return new Response("success to delete the application", 200);
         } else {
-            return "success to delete the application";
+            return new Response("application not exists", 400);
         }
     }
 

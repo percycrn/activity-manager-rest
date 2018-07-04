@@ -10,7 +10,7 @@ public interface ApplicationRepository extends JpaRepository<Application, Intege
 
     Application findByUidAndTag(Integer uid, String tag);
 
-    Application deleteByApid(Integer apid);
+    int deleteByApid(Integer apid);
 
     Application findByApid(Integer apid);
 

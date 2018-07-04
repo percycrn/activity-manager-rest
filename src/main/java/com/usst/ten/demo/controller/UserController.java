@@ -3,6 +3,8 @@ package com.usst.ten.demo.controller;
 import com.usst.ten.demo.entity.Activity;
 import com.usst.ten.demo.entity.Record;
 import com.usst.ten.demo.entity.User;
+import com.usst.ten.demo.enumerate.ActivityState;
+import com.usst.ten.demo.pojo.Response;
 import com.usst.ten.demo.pojo.UserInfo;
 import com.usst.ten.demo.repository.*;
 import org.springframework.web.bind.annotation.*;
@@ -50,16 +52,16 @@ public class UserController {
      */
     @CrossOrigin
     @PutMapping(value = "/users/{uid}")
-    public String updateUserInfo(@PathVariable("uid") Integer uid, @RequestBody UserInfo userInfo) {
+    public Response updateUserInfo(@PathVariable("uid") Integer uid, @RequestBody UserInfo userInfo) {
         User user = userRepo.findByUid(uid);
         if (user == null) {
-            return "user not exists";
+            return new Response("user not exists", 400);
         }
         user.setAddress(userInfo.getAddress());
         user.setEmail(userInfo.getEmail());
         user.setName(userInfo.getName());
         userRepo.save(user);
-        return "success to update user info";
+        return new Response("success to update user info", 200);
     }
 
     /**
@@ -76,15 +78,15 @@ public class UserController {
      */
     @CrossOrigin
     @PostMapping(value = "/users/{uid}/acts/{aid}/tags/{tag}")
-    public String createActivityUser(@PathVariable("uid") Integer uid, @PathVariable("aid") Integer aid,
-                                     @PathVariable("tag") String tag) {
+    public Response createActivityUser(@PathVariable("uid") Integer uid, @PathVariable("aid") Integer aid,
+                                       @PathVariable("tag") String tag) {
         Record record = new Record();
         record.setUid(uid);
         record.setAid(aid);
         record.setTag(tag);
         record.setSignInTime(System.currentTimeMillis());
         recordRepo.save(record);
-        return "success to create a new record";
+        return new Response("success to create a new record", 200);
     }
 
     /**
@@ -101,11 +103,11 @@ public class UserController {
     @CrossOrigin
     @Transactional
     @DeleteMapping(value = "/users/{uid}/acts/{aid}")
-    public String deleteActivityUser(@PathVariable("uid") Integer uid, @PathVariable("aid") Integer aid) {
+    public Response deleteActivityUser(@PathVariable("uid") Integer uid, @PathVariable("aid") Integer aid) {
         if (recordRepo.deleteByUidAndAid(uid, aid) == 1) {
-            return "success to delete the record";
+            return new Response("success to delete the record", 200);
         } else {
-            return "record not exists";
+            return new Response("record not exists", 400);
         }
     }
 
@@ -123,14 +125,17 @@ public class UserController {
      */
     @CrossOrigin
     @PatchMapping(value = "/users/{uid}/acts/{aid}")
-    public String updateActivityUser(@PathVariable("uid") Integer uid, @PathVariable("aid") Integer aid) {
+    public Response updateActivityUser(@PathVariable("uid") Integer uid, @PathVariable("aid") Integer aid) {
         Record record = recordRepo.findByUidAndAid(uid, aid);
         if (record == null) {
-            return "record not exists";
+            return new Response("record not exists", 400);
+        }
+        if (record.getSignUpTime() != null) {
+            return new Response("already sign up", 400);
         }
         record.setSignUpTime(System.currentTimeMillis());
         recordRepo.save(record);
-        return "success to sign up(签到)";
+        return new Response("success to sign up(签到)", 200);
     }
 
     /**
@@ -145,13 +150,20 @@ public class UserController {
      */
     @CrossOrigin
     @GetMapping(value = "/users/{uid}/acts")
-    public List<Activity> joinedActivity(@PathVariable("uid") Integer uid) {
-        List<Record> recordLists = recordRepo.findByUid(uid);
-        List<Activity> activityLists = new ArrayList<>();
-        for (Record record : recordLists) {
-            activityLists.add(activityRepo.findByAid(record.getAid()));
+    public List<Activity> joinedActivity(@PathVariable("uid") Integer uid,
+                                         @RequestParam("type") String type) {
+        switch (type) {
+            case "joined":
+                List<Record> recordLists = recordRepo.findByUid(uid);
+                List<Activity> activityLists = new ArrayList<>();
+                for (Record record : recordLists) {
+                    activityLists.add(activityRepo.findByAid(record.getAid()));
+                }
+                return activityLists;
+            case "unjoined":
+                return activityRepo.findByState(ActivityState.REGISTERING.toString());
+            default:
+                return null;
         }
-        return activityLists;
     }
-
 }
